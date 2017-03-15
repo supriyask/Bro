@@ -1,7 +1,8 @@
 type MQTT_Message = record {
 	fixed_header1   : uint8;
 	fixed_header2   : uint8;
- 	variable_header : bytestring &length = fixed_header2;
+ 	#variable_header : bytestring &length = fixed_header2;
+ 	variable_header : uint8[fixed_header2];
 	
 } &let {
  	msg_type    : uint8 = (fixed_header1 >> 4);
@@ -11,9 +12,10 @@ type MQTT_Message = record {
 };
 
 type MQTT_PDU(is_orig: bool) = record {
-	fixed_header1 : uint8;
-	fixed_header2 : uint8;
-	msg_type      : uint8;
+	fixed_header1   : uint8;
+	fixed_header2   : uint8;
+ 	variable_header : uint8[fixed_header2];
+  	#variable_header : bytestring &length = fixed_header2;
 } &byteorder=bigendian;
 
 

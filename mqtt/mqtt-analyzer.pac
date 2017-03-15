@@ -3,70 +3,78 @@
 refine flow MQTT_Flow += {
 	function proc_mqtt_message(msg: MQTT_PDU): bool
 		%{
-		printf("Entered MQTT_flow\n");
 		unsigned int header1 = ${msg.fixed_header1};
-		printf("Fixed_header1 : %d\n", header1);
+		printf("Fixed_header_byte1(msg_type) : %d\n", header1);
 		unsigned int header2 = ${msg.fixed_header2};
-		printf("Fixed_header1 : %d\n", header2);
-		unsigned int msg_type = ${msg.msg_type};
-		printf("Message Type : %d\n", msg_type);
-//#  		if (msg_type == MQTT_CONNECTION) {
-//#			printf("MQTT_CONN packet\n");
-//#			BifEvent::generate_mqtt_conn(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), ${msg.msg_type});
-//#			return true;
-//#		}
-//#		if (${msg.msg_type} == MQTT_CONNACK) {
-//#			printf("MQTT_CONNACK packet\n");
-//#			BifEvent::generate_mqtt_connack(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),${msg.msg_type});
-//#			return true;
-//#		}
-//#		if (${msg.msg_type} == MQTT_PUBLISH) {
-//#			printf("MQTT_PUBLISH packet\n");
-//#			BifEvent::generate_mqtt_pub(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),${msg.msg_type});
-//#			return true;
-//#		}
-//#		if (${msg.msg_type} == MQTT_SUBSCRIBE) {
-//#			printf("MQTT_SUBSCRIBE packet\n");
-//#			BifEvent::generate_mqtt_sub(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),${msg.msg_type});
-//#			return true;
-//#		}
-//#		if (${msg.msg_type} == MQTT_SUBACK) {
-//#			printf("MQTT_SUBACK packet\n");
-//#			BifEvent::generate_mqtt_suback(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),${msg.msg_type});
-//#			return true;
-//#		}
-//#		if (${msg.msg_type} == MQTT_PINGREQ) {
-//#			printf("MQTT_PINGREQ packet\n");
-//#			BifEvent::generate_mqtt_pingreq(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),${msg.msg_type});
-//#			return true;
-//#		}
-//#		if (${msg.msg_type} == MQTT_PINGRES) {
-//#			printf("MQTT_PINGRES packet\n");
-//#			BifEvent::generate_mqtt_pingres(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),${msg.msg_type});
-//#			return true;
-//#		}
+		printf("Fixed_header_byte2(msg_length) : %d\n", header2);
+
+		unsigned int msg_type = header1 >> 4;
+		unsigned int dup = (header1 & 0x08) >> 3;
+		unsigned int Qos = (header1 & 0x06) >> 1;
+ 		unsigned int retain = header1 & 0x01;
+		printf("Message Type: %d,  dup: %d,  Qos: %d,  retain: %d\n", msg_type, dup, Qos, retain);
+
+  		unsigned int *var_header = (unsigned int*)${msg.variable_header};
+		for (unsigned int i = 0; i< ${msg.variable_header}->size(); ++i){
+    			printf("Variable header: %d\n",var_header[i]);
+		}
+
+     		if (msg_type == MQTT_CONNECT) {
+			printf("MQTT_CONNECT packet\n");
+			BifEvent::generate_mqtt_conn(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), msg_type);
+			return true;
+		}
+		if (msg_type == MQTT_CONNACK) {
+			printf("MQTT_CONNACK packet\n");
+			BifEvent::generate_mqtt_connack(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), msg_type);
+			return true;
+		}
+		if (msg_type == MQTT_PUBLISH) {
+			printf("MQTT_PUBLISH packet\n");
+			BifEvent::generate_mqtt_pub(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), msg_type);
+			return true;
+		}
+		if (msg_type == MQTT_SUBSCRIBE) {
+			printf("MQTT_SUBSCRIBE packet\n");
+			BifEvent::generate_mqtt_sub(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), msg_type);
+			return true;
+		}
+		if (msg_type == MQTT_SUBACK) {
+			printf("MQTT_SUBACK packet\n");
+			BifEvent::generate_mqtt_suback(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), msg_type);
+			return true;
+		}
+		if (msg_type == MQTT_PINGREQ) {
+			printf("MQTT_PINGREQ packet\n");
+			BifEvent::generate_mqtt_pingreq(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), msg_type);
+			return true;
+		}
+		if (msg_type == MQTT_PINGRESP) {
+			printf("MQTT_PINGRESP packet\n");
+			BifEvent::generate_mqtt_pingres(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), msg_type);
+			return true;
+		}
+		return true;
 		%}
 };
 
 enum MQTT_msg_type {
-        MQTT_CONNECTION = 1,
-        MQTT_CONNACK = 2,
-        MQTT_PUBLISH = 3,
-        MQTT_SUBSCRIBE = 8,
-        MQTT_SUBACK = 9,
-        MQTT_PINGREQ = 12,
-        MQTT_PINGRES = 13,
+	MQTT_RESERVED    = 0,
+        MQTT_CONNECT     = 1,
+        MQTT_CONNACK     = 2,
+        MQTT_PUBLISH     = 3,
+	MQTT_PUBACK      = 4,
+	MQTT_PUBREC      = 5,
+	MQTT_PUBREL      = 6,
+	MQTT_PUBCOMP     = 7,
+        MQTT_SUBSCRIBE   = 8,
+        MQTT_SUBACK      = 9,
+	MQTT_UNSUBSCRIBE = 10,
+	MQTT_UNSUBACK    = 11,
+        MQTT_PINGREQ     = 12,
+        MQTT_PINGRESP    = 13,
+	MQTT_DISCONNECT  = 14,
 };
-
-#enum MQTT_msg_type {
-#        MQTT_CONNECTION = 0x24,
-#        MQTT_CONNACK = 0x28,
-#        MQTT_PUBLISH = 0x30,
-#        MQTT_SUBSCRIBE = 0x82,
-#        MQTT_SUBACK = 0x90,
-#        MQTT_PINGREQ = 0xc0,
-#        MQTT_PINGRES = 0xd0,
-#};
 
 #refine typeattr MQTT_PDU += &let {
 #	proc: bool = $context.flow.proc_mqtt_message(is_orig, fixed_header1, fixed_header2);

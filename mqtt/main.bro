@@ -29,17 +29,17 @@ export {
 # with any signatures, then you can do port-based detection by
 # uncommenting the following and specifying the port(s):
 
-# const ports = { 1234/tcp, 5678/tcp };
+const ports = { 1883/tcp, 49327/tcp };
 
 
-# redef likely_server_ports += { ports };
+redef likely_server_ports += { ports };
 
 event bro_init() &priority=5
 	{
-	Log::create_stream(Mqtt::LOG, [$columns=Info, $ev=log_mqtt, $path="mqtt"]);
+#	Log::create_stream(Mqtt::LOG, [$columns=Info, $ev=log_mqtt, $path="mqtt"]);
 
 	# TODO: If you're using port-based DPD, uncomment this.
-	# Analyzer::register_for_ports(Analyzer::ANALYZER_MQTT, ports);
+	Analyzer::register_for_ports(Analyzer::ANALYZER_MQTT, ports);
 	}
 
 event mqtt_event(c: connection)
