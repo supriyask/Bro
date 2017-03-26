@@ -15,6 +15,12 @@ export {
 		uid:    string  &log;
 		## The connection's 4-tuple of endpoint addresses/ports.
 		id:     conn_id &log;
+
+		pname:  string  &log;
+
+		pversion: count &log;
+
+		msg_type: count &log;
 		
 		# ## TODO: Add other fields here that you'd like to log.
 	};
@@ -29,8 +35,7 @@ export {
 # with any signatures, then you can do port-based detection by
 # uncommenting the following and specifying the port(s):
 
-const ports = { 1883/tcp, 49327/tcp };
-
+const ports = { 1883/tcp };
 
 redef likely_server_ports += { ports };
 
@@ -42,12 +47,15 @@ event bro_init() &priority=5
 	Analyzer::register_for_ports(Analyzer::ANALYZER_MQTT, ports);
 	}
 
-event mqtt_event(c: connection)
+event mqtt_event(c: connection, protocol_name: string, protocol_version: count, msg_type: count)
 	{
 	local info: Info;
 	info$ts  = network_time();
 	info$uid = c$uid;
 	info$id  = c$id;
+	info$pname = protocol_name;
+	info$pversion = protocol_version;
+	info$msg_type = msg_type;
 
 	Log::write(Mqtt::LOG, info);
 	}

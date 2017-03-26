@@ -1,21 +1,121 @@
-type MQTT_Message = record {
-	fixed_header1   : uint8;
-	fixed_header2   : uint8;
- 	#variable_header : bytestring &length = fixed_header2;
- 	variable_header : uint8[fixed_header2];
-	
+enum MQTT_msg_type {
+        MQTT_RESERVED    = 0,
+        MQTT_CONNECT     = 1,
+        MQTT_CONNACK     = 2,
+        MQTT_PUBLISH     = 3,
+        MQTT_PUBACK      = 4,
+        MQTT_PUBREC      = 5,
+        MQTT_PUBREL      = 6,
+        MQTT_PUBCOMP     = 7,
+        MQTT_SUBSCRIBE   = 8,
+        MQTT_SUBACK      = 9,
+        MQTT_UNSUBSCRIBE = 10,
+        MQTT_UNSUBACK    = 11,
+        MQTT_PINGREQ     = 12,
+        MQTT_PINGRESP    = 13,
+        MQTT_DISCONNECT  = 14,
+};
+
+type MQTT_connect = record {
+	len              : uint16;
+	protocol_name    : bytestring &length = len;
+	protocol_version : int8;
+	connect_flags    : uint8;
+	keep_alive       : uint16;
+	clientID_len     : uint16;
+	client_id        : bytestring &length = clientID_len;
+
+#	Need to check whether 'will' flag is set before parsing 
+#	the following fields:
+#	if (will) {
+#		topic_len : uint16;
+#		will_topic: bytestring &length = topic_len;
+#		msg_len   : uint16; 
+#		will_msg  : bytestring &length = msg_len;
+#	};
+#	if (username) {
+#		usrname_len   : uint16; 
+#		will_username : bytestring &length = usrname_len;
+#	};
+#	if (password) {
+#		password_len  : uint16 
+#		will_password : bytestring &length = password_len;
+#	};
+
 } &let {
- 	msg_type    : uint8 = (fixed_header1 >> 4);
-  	dup_flag    : uint8 = ((fixed_header1 & 0x08) >> 3); 
-  	QoS_level   : uint8 = ((fixed_header1 & 0x06) >> 1);
-  	retain_flag : uint8 = (fixed_header1 & 0x01);
+	username      : uint8 = (connect_flags & 0x80);
+	password      : uint8 = (connect_flags & 0x40);
+	clean_session : uint8 = (connect_flags & 0x02) != 0;
+	will          : uint8 = (connect_flags & 0x04);
+	will_retain   : uint8 = ((connect_flags & 0x20) != 0) &if(will);
+	will_QoS      : uint8 = ((connect_flags & 0x18) >> 3) &if(will);
+};
+
+type MQTT_connack = record {
+	reserved    : uint8;
+	return_code : uint8;
+}; 
+
+type MQTT_publish = record {
+	topic_len    : uint16;
+	topic        :  bytestring &length = topic_len;
+	msg_id       : uint16;
+	publish_rest : bytestring &restofdata; 
+};
+
+type MQTT_puback = record {
+	msg_id : uint16;
+};
+
+type MQTT_subscribe = record {
+	msg_id : uint16;
+
+#	Need to write a while loop for this (list of topics)
+	topic_len       : uint16;
+	subscribe_topic : bytestring &length = topic_len;
+	requested_QoS   : uint8;
+};
+
+type MQTT_suback = record {
+	msg_id      : uint16;
+	granted_QoS : uint8;
+};
+
+type MQTT_unsubscribe = record {
+	msg_id : uint16;
+
+#	Need to write a while loop for this (list of topics)
+	topic_len         : uint16;
+	unsubscribe_topic : bytestring &length = topic_len;
+};
+
+type MQTT_unsuback = record {
+	msg_id : uint16;
 };
 
 type MQTT_PDU(is_orig: bool) = record {
-	fixed_header1   : uint8;
-	fixed_header2   : uint8;
- 	variable_header : uint8[fixed_header2];
-  	#variable_header : bytestring &length = fixed_header2;
+	fixed_header    : uint8;
+	header_length   : uint8;
+ 	variable_header : case msg_type of {
+	    MQTT_CONNECT     -> conn_packet        : MQTT_connect[] &length = header_length;		 
+	    MQTT_CONNACK     -> connack_packet     : MQTT_connack[] &length = header_length;		 
+	    MQTT_PUBLISH     -> pub_packet         : MQTT_publish[] &length = header_length;		 
+	    MQTT_PUBACK      -> puback_packet      : MQTT_puback[] &length = header_length;		 
+	    MQTT_PUBREC      -> pubrec_packet      : MQTT_puback[] &length = header_length;		 
+	    MQTT_PUBREL      -> pubrel_packet      : MQTT_puback[] &length = header_length;		 
+	    MQTT_PUBCOMP     -> pubcomp_packet     : MQTT_puback[] &length = header_length;		 
+	    MQTT_SUBSCRIBE   -> subscribe_packet   : MQTT_subscribe[] &length = header_length;		 
+	    MQTT_SUBACK      -> suback_packet      : MQTT_suback[] &length = header_length;		 
+	    MQTT_UNSUBSCRIBE -> unsubscribe_packet : MQTT_unsubscribe[] &length = header_length;		 
+	    MQTT_UNSUBACK    -> unsuback_packet    : MQTT_unsuback[] &length = header_length;
+	    default          -> none               : empty;
+	};
+
+} &let {
+ 	msg_type : uint8 = (fixed_header >> 4);
+  	dup      : uint8 = ((fixed_header & 0x08) >> 3); 
+  	QoS      : uint8 = ((fixed_header & 0x06) >> 1);
+  	retain   : uint8 = (fixed_header & 0x01);
 } &byteorder=bigendian;
 
 
