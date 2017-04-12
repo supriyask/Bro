@@ -5,6 +5,8 @@
 
 module Mqtt;
 
+@load ./consts.bro
+
 export {
 	redef enum Log::ID += { LOG };
 
@@ -16,12 +18,21 @@ export {
 		## The connection's 4-tuple of endpoint addresses/ports.
 		id:     conn_id &log;
 
-		pname:  string  &log;
+		msg_type: string &log;
 
-		pversion: count &log;
-
-		msg_type: count &log;
+ 		pname:  string  &log;
+ 
+ 		pversion: count &log;
+ 
+ 		cid: string &log;
 		
+ 		return_code: count &log;
+
+ 		msg_id: count &log;
+
+ 		topic: string &log;
+
+		QoS: count &log;
 		# ## TODO: Add other fields here that you'd like to log.
 	};
 
@@ -41,21 +52,149 @@ redef likely_server_ports += { ports };
 
 event bro_init() &priority=5
 	{
-#	Log::create_stream(Mqtt::LOG, [$columns=Info, $ev=log_mqtt, $path="mqtt"]);
+ 	Log::create_stream(Mqtt::LOG, [$columns=Info, $ev=log_mqtt, $path="mqtt"]);
 
 	# TODO: If you're using port-based DPD, uncomment this.
 	Analyzer::register_for_ports(Analyzer::ANALYZER_MQTT, ports);
 	}
 
-event mqtt_event(c: connection, protocol_name: string, protocol_version: count, msg_type: count)
+event mqtt_conn(c: connection, msg_type: count, protocol_name: string, protocol_version: count, client_id: string)
 	{
 	local info: Info;
 	info$ts  = network_time();
 	info$uid = c$uid;
 	info$id  = c$id;
-	info$pname = protocol_name;
-	info$pversion = protocol_version;
-	info$msg_type = msg_type;
+ 	info$msg_type = msg_types[msg_type];
+ 	info$pname = protocol_name;
+ 	info$pversion = protocol_version;
+ 	info$cid = client_id;
 
-	Log::write(Mqtt::LOG, info);
+  	Log::write(Mqtt::LOG, info);
 	}
+
+event mqtt_connack(c: connection, msg_type: count, return_code: count)
+	{
+	local info: Info;
+	info$ts  = network_time();
+	info$uid = c$uid;
+	info$id  = c$id;
+ 	info$msg_type = msg_types[msg_type];
+ 	info$return_code = return_code;
+
+  	Log::write(Mqtt::LOG, info);
+	}
+
+event mqtt_pub(c: connection, msg_type: count, msg_id: count, topic: string)
+	{
+	local info: Info;
+	info$ts  = network_time();
+	info$uid = c$uid;
+	info$id  = c$id;
+ 	info$msg_type = msg_types[msg_type];
+ 	info$msg_id = msg_id;
+ 	info$topic = topic;
+
+  	Log::write(Mqtt::LOG, info);
+	}
+
+event mqtt_puback(c: connection, msg_type: count, msg_id: count)
+	{
+	local info: Info;
+	info$ts  = network_time();
+	info$uid = c$uid;
+	info$id  = c$id;
+ 	info$msg_type = msg_types[msg_type];
+ 	info$msg_id = msg_id;
+
+  	Log::write(Mqtt::LOG, info);
+	}
+
+# Change to include subscribe_topic after testing header parsing on real traffic
+#event mqtt_sub(c: connection, msg_type: count, msg_id: count, subscribe_topic: string, requested_QoS: count);
+event mqtt_sub(c: connection, msg_type: count, msg_id: count, requested_QoS: count)
+	{
+	local info: Info;
+	info$ts  = network_time();
+	info$uid = c$uid;
+	info$id  = c$id;
+ 	info$msg_type = msg_types[msg_type];
+ 	info$msg_id = msg_id;
+# 	info$topic = subscribe_topic;
+ 	info$QoS = requested_QoS;
+
+  	Log::write(Mqtt::LOG, info);
+	}
+
+event mqtt_suback(c: connection, msg_type: count, msg_id: count, granted_QoS: count)
+	{
+	local info: Info;
+	info$ts  = network_time();
+	info$uid = c$uid;
+	info$id  = c$id;
+ 	info$msg_type = msg_types[msg_type];
+ 	info$msg_id = msg_id;
+ 	info$QoS = granted_QoS;
+
+  	Log::write(Mqtt::LOG, info);
+	}
+
+# Change to include unsubscribe_topic after testing header parsing on real traffic
+#event mqtt_unsub(c: connection, msg_type: count, msg_id: count, unsubscribe_topic: string);
+event mqtt_unsub(c: connection, msg_type: count, msg_id: count)
+	{
+	local info: Info;
+	info$ts  = network_time();
+	info$uid = c$uid;
+	info$id  = c$id;
+ 	info$msg_type = msg_types[msg_type];
+ 	info$msg_id = msg_id;
+# 	info$topic = unsubscribe_topic;
+
+  	Log::write(Mqtt::LOG, info);
+	}
+
+event mqtt_unsuback(c: connection, msg_type: count, msg_id: count)
+	{
+	local info: Info;
+	info$ts  = network_time();
+	info$uid = c$uid;
+	info$id  = c$id;
+ 	info$msg_type = msg_types[msg_type];
+ 	info$msg_id = msg_id;
+
+  	Log::write(Mqtt::LOG, info);
+	}
+
+event mqtt_pingreq(c: connection, msg_type: count)
+	{
+	local info: Info;
+	info$ts  = network_time();
+	info$uid = c$uid;
+	info$id  = c$id;
+ 	info$msg_type = msg_types[msg_type];
+
+  	Log::write(Mqtt::LOG, info);
+	}
+
+event mqtt_pingres(c: connection, msg_type: count)
+	{
+	local info: Info;
+	info$ts  = network_time();
+	info$uid = c$uid;
+	info$id  = c$id;
+ 	info$msg_type = msg_types[msg_type];
+
+  	Log::write(Mqtt::LOG, info);
+	}
+
+event mqtt_disconnect(c: connection, msg_type: count)
+	{
+	local info: Info;
+	info$ts  = network_time();
+	info$uid = c$uid;
+	info$id  = c$id;
+ 	info$msg_type = msg_types[msg_type];
+
+  	Log::write(Mqtt::LOG, info);
+	}
+

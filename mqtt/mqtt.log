@@ -1,0 +1,28 @@
+#separator \x09
+#set_separator	,
+#empty_field	(empty)
+#unset_field	-
+#path	mqtt
+#open	2017-04-11-20-30-08
+#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	msg_type	pname	pversion	cid	return_code	msg_id	topic	QoS
+#types	time	string	addr	port	addr	port	string	string	count	string	count	count	string	count
+1461170590.509491	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	connect	MQIsdp	3	paho/34AAE54A75D839566E	-	-	-	-
+1461170590.745143	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	connack	-	-	-	0	-	-	-
+1461170590.745647	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	subscribe	-	-	-	-	1	-	0
+1461170590.985197	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	suback	-	-	-	-	1	-	0
+1461170591.219981	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	publish	-	-	-	-	18533	SampleTopic	-
+1461170596.223360	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	pingreq	-	-	-	-	-	-	-
+1461170596.653508	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	pingresp	-	-	-	-	-	-	-
+1461170596.653525	CesfzJ2uSprmVj7VT8	10.0.1.4	49330	198.41.30.241	1883	connect	MQIsdp	3	paho/DDE4DDAF4108D3E363	-	-	-	-
+1461170596.653674	CesfzJ2uSprmVj7VT8	10.0.1.4	49330	198.41.30.241	1883	publish	-	-	-	-	18533	SampleTopic	-
+1461170596.882353	CesfzJ2uSprmVj7VT8	10.0.1.4	49330	198.41.30.241	1883	connack	-	-	-	0	-	-	-
+1461170596.891281	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	publish	-	-	-	-	18533	SampleTopic	-
+1461170601.896374	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	pingreq	-	-	-	-	-	-	-
+1461170602.182767	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	pingresp	-	-	-	-	-	-	-
+1461170607.186613	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	pingreq	-	-	-	-	-	-	-
+1461170607.568551	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	pingresp	-	-	-	-	-	-	-
+1461170612.572480	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	pingreq	-	-	-	-	-	-	-
+1461170612.909854	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	pingresp	-	-	-	-	-	-	-
+1461170617.912894	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	pingreq	-	-	-	-	-	-	-
+1461170618.150093	CziLTa1J9DKzOGr4E8	10.0.1.4	49327	198.41.30.241	1883	pingresp	-	-	-	-	-	-	-
+#close	2017-04-11-20-30-08

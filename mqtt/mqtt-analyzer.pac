@@ -13,8 +13,11 @@ refine flow MQTT_Flow += {
 			StringVal* protocol_name = 0;
   			string pname, cid;
 			int protocol_version = 0;
+			int connect_flags = 0;
 			uint16 keep_alive = 0;
 			uint16 clientid_len = 0;
+			uint16 willtopic_len = 0;
+			int clean_session = 0;
 			StringVal* client_id = 0;
 
 			for ( ptr = options->begin(); ptr != options->end(); ++ptr ) {
@@ -23,22 +26,25 @@ refine flow MQTT_Flow += {
 					  (const char*) (*ptr)->protocol_name().begin()); 
   				pname = std_str((*ptr)->protocol_name());
 				protocol_version = (int)(*ptr)->protocol_version();
+				connect_flags = (int)(*ptr)->connect_flags();
 				keep_alive = (*ptr)->keep_alive();
 				clientid_len = (*ptr)->clientID_len();
 			  	client_id = new StringVal((*ptr)->client_id().length(),
 					  (const char*) (*ptr)->client_id().begin()); 
 				cid = std_str((*ptr)->client_id());
+  			  	clean_session = (int)(*ptr)->clean_session();
 			}
 			cout << "packet_len: " << packet_len << " protocol_name: " << pname;
 			cout << " protocol_version: " << protocol_version << " keep_alive: " << keep_alive;
 			cout << " clientID_len: " << clientid_len << " client_id: " << cid << endl;
-//			cout << "username: " << ${msg.username} << " password: " << ${msg.password};
+		  	cout << "topic_len: " << clean_session << "-" << connect_flags << endl;
+//  			cout << "username: " << options->protocol_name<< endl; 
 //			cout << " will_retain: " << ${will_retain} << " will_QoS: " << ${will_QoS};
 //			cout << " clean_session: " << ${clean_session} << endl;
 			cout << endl;
 
-			BifEvent::generate_mqtt_conn(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),
-							protocol_name, protocol_version, client_id);
+			BifEvent::generate_mqtt_conn(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), ${msg.msg_type},
+						protocol_name, protocol_version, client_id);
 			return true;
 		}
 		if (${msg.msg_type} == MQTT_CONNACK) {
@@ -58,7 +64,8 @@ refine flow MQTT_Flow += {
 				case 5: cout << "Connection Refused: not authorized" << endl; break;
 			}
 			cout << endl;
-			BifEvent::generate_mqtt_connack(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), return_code);
+			BifEvent::generate_mqtt_connack(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), ${msg.msg_type}, 
+									return_code);
 			return true;
 		}
 		if (${msg.msg_type} == MQTT_PUBLISH) {
@@ -83,7 +90,7 @@ refine flow MQTT_Flow += {
 			cout << "topic_len: " << topic_len << " topic: " << ptopic << " msg_id: " << msg_id;
 			cout << " publish_rest: " << prest << endl;
 			cout << endl;
-			BifEvent::generate_mqtt_pub(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),
+			BifEvent::generate_mqtt_pub(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),${msg.msg_type},
 							msg_id, topic);
 			return true;
 		}
@@ -97,7 +104,7 @@ refine flow MQTT_Flow += {
                         }
                         cout << "Message Identifier: " << msgid << endl;
                         cout << endl;
-                        BifEvent::generate_mqtt_puback(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),
+                        BifEvent::generate_mqtt_puback(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),${msg.msg_type},
                                                         msgid);
                         return true;
                 }
@@ -112,17 +119,19 @@ refine flow MQTT_Flow += {
         		int requested_QoS = 0;
 			for ( ptr = subscribe->begin(); ptr != subscribe->end(); ++ptr ) {
 				msgid = (*ptr)->msg_id();
-				topiclen = (*ptr)->topic_len();
-				subscribe_topic = new StringVal((*ptr)->subscribe_topic().length(),
-						  (const char*) (*ptr)->subscribe_topic().begin());
-				stopic = std_str((*ptr)->subscribe_topic());
-				requested_QoS = (int)(*ptr)->requested_QoS();
+//				Change while testing header parsing on real traffic
+//				topiclen = (*ptr)->topic_len();
+//				subscribe_topic = new StringVal((*ptr)->subscribe_topic().length(),
+//						  (const char*) (*ptr)->subscribe_topic().begin());
+//				stopic = std_str((*ptr)->subscribe_topic());
+//				requested_QoS = (int)(*ptr)->requested_QoS();
 			}
 			cout << "Message Identifier: " << msgid << " Topic Length: " << topiclen;
-			cout << " Topic: " << stopic << " QoS: " << requested_QoS << endl;
+//			cout << " Topic: " << stopic << " QoS: " << requested_QoS << endl;
 			cout << endl;
-			BifEvent::generate_mqtt_sub(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),
-							msgid, subscribe_topic, requested_QoS);
+			BifEvent::generate_mqtt_sub(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), ${msg.msg_type},
+							msgid, requested_QoS);
+							//msgid, subscribe_topic, requested_QoS);
 			return true;
 		}
 		if (${msg.msg_type} == MQTT_SUBACK) {
@@ -137,7 +146,7 @@ refine flow MQTT_Flow += {
 			}
 			cout << "Message Identifier: " << msgid << " QoS: " << granted_QoS << endl;
 			cout << endl;
-			BifEvent::generate_mqtt_suback(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),
+			BifEvent::generate_mqtt_suback(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),${msg.msg_type},
 							msgid, granted_QoS);
 			return true;
 	 	}
@@ -151,16 +160,18 @@ refine flow MQTT_Flow += {
                         StringVal* unsubscribe_topic = 0;
                         for ( ptr = unsubscribe->begin(); ptr != unsubscribe->end(); ++ptr ) {
                                 msgid = (*ptr)->msg_id();
-                                topiclen = (*ptr)->topic_len();
-                                unsubscribe_topic = new StringVal((*ptr)->unsubscribe_topic().length(),
-                                                  (const char*) (*ptr)->unsubscribe_topic().begin());
-                                unsubtopic = std_str((*ptr)->unsubscribe_topic());
+//				Change while testing header parsing on real traffic
+//                              topiclen = (*ptr)->topic_len();
+//                              unsubscribe_topic = new StringVal((*ptr)->unsubscribe_topic().length(),
+//                                                 (const char*) (*ptr)->unsubscribe_topic().begin());
+//                              unsubtopic = std_str((*ptr)->unsubscribe_topic());
                         }
                         cout << "Message Identifier: " << msgid << " Topic Length: " << topiclen;
-                        cout << " Topic: " << unsubtopic << endl;
+//                      cout << " Topic: " << unsubtopic << endl;
                         cout << endl;
-                        BifEvent::generate_mqtt_unsub(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),
-                                                        msgid, unsubscribe_topic);
+                        BifEvent::generate_mqtt_unsub(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), ${msg.msg_type},
+                                                        msgid);
+                                                        //msgid, unsubscribe_topic);
                         return true;
                 }
                 if (${msg.msg_type} == MQTT_UNSUBACK) {
@@ -173,7 +184,7 @@ refine flow MQTT_Flow += {
                         }
                         cout << "Message Identifier: " << msgid << endl;
                         cout << endl;
-                        BifEvent::generate_mqtt_unsuback(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),
+                        BifEvent::generate_mqtt_unsuback(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), ${msg.msg_type},
                                                         msgid);
                         return true;
                 }

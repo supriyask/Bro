@@ -16,6 +16,23 @@ enum MQTT_msg_type {
         MQTT_DISCONNECT  = 14,
 };
 
+type MQTT_will_obj = record {
+	topic_len : uint16;
+	will_topic: bytestring &length = topic_len;
+	msg_len   : uint16; 
+	will_msg  : bytestring &length = msg_len;
+};
+
+type MQTT_username_obj = record {
+	usrname_len   : uint16; 
+	will_username : bytestring &length = usrname_len;
+};
+
+type MQTT_password_obj = record {
+	password_len  : uint16; 
+	will_password : bytestring &length = password_len;
+};
+
 type MQTT_connect = record {
 	len              : uint16;
 	protocol_name    : bytestring &length = len;
@@ -24,24 +41,18 @@ type MQTT_connect = record {
 	keep_alive       : uint16;
 	clientID_len     : uint16;
 	client_id        : bytestring &length = clientID_len;
-
-#	Need to check whether 'will' flag is set before parsing 
-#	the following fields:
-#	if (will) {
-#		topic_len : uint16;
-#		will_topic: bytestring &length = topic_len;
-#		msg_len   : uint16; 
-#		will_msg  : bytestring &length = msg_len;
-#	};
-#	if (username) {
-#		usrname_len   : uint16; 
-#		will_username : bytestring &length = usrname_len;
-#	};
-#	if (password) {
-#		password_len  : uint16 
-#		will_password : bytestring &length = password_len;
-#	};
-
+	will_fields      : case will of {
+			1 -> will_objs: MQTT_will_obj;
+			default -> none: empty;
+	};
+	username_fields  : case username of {
+			1 -> uname_objs: MQTT_username_obj;
+			default -> none1: empty;
+	};
+	password_fields  : case password of {
+			1 -> pass_objs: MQTT_password_obj;
+			default -> none2: empty;
+	};
 } &let {
 	username      : uint8 = (connect_flags & 0x80);
 	password      : uint8 = (connect_flags & 0x40);
@@ -67,13 +78,16 @@ type MQTT_puback = record {
 	msg_id : uint16;
 };
 
-type MQTT_subscribe = record {
-	msg_id : uint16;
-
-#	Need to write a while loop for this (list of topics)
+type MQTT_subscribe_topic = record {
 	topic_len       : uint16;
 	subscribe_topic : bytestring &length = topic_len;
 	requested_QoS   : uint8;
+};
+
+type MQTT_subscribe = record {
+	msg_id : uint16;
+	topics : MQTT_subscribe_topic [] &until($element == 0);
+
 };
 
 type MQTT_suback = record {
@@ -81,12 +95,13 @@ type MQTT_suback = record {
 	granted_QoS : uint8;
 };
 
+type MQTT_unsubscribe_topic = record {
+	topic_len       : uint16;
+	subscribe_topic : bytestring &length = topic_len;
+};
 type MQTT_unsubscribe = record {
 	msg_id : uint16;
-
-#	Need to write a while loop for this (list of topics)
-	topic_len         : uint16;
-	unsubscribe_topic : bytestring &length = topic_len;
+	topics : MQTT_unsubscribe_topic [] &until($element == 0); 
 };
 
 type MQTT_unsuback = record {
