@@ -21,4 +21,13 @@ export {
     } &default = function(n: count): string { return fmt("unknown-message-type-%d", n); };
 }
 
-
+export {
+    const return_codes = {
+	[0] = "Connection Accepted",
+	[1] = "Refused: unacceptable protocol version",
+	[2] = "Refused: identifier rejected",
+	[3] = "Refused: server unavailable",
+	[4] = "Refused: bad user name or password",	
+	[5] = "Refused: not authorized",
+    } &default = function(n: count): string { return fmt("unknown-return-code-%d", n); };
+}

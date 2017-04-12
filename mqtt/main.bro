@@ -26,7 +26,7 @@ export {
  
  		cid: string &log;
 		
- 		return_code: count &log;
+ 		return_code: string &log;
 
  		msg_id: count &log;
 
@@ -79,7 +79,7 @@ event mqtt_connack(c: connection, msg_type: count, return_code: count)
 	info$uid = c$uid;
 	info$id  = c$id;
  	info$msg_type = msg_types[msg_type];
- 	info$return_code = return_code;
+ 	info$return_code = return_codes[return_code];
 
   	Log::write(Mqtt::LOG, info);
 	}
