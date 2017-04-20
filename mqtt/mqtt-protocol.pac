@@ -1,3 +1,5 @@
+##! MQTT control packet parser, contributed by Supriya Sudharani Kumaraswamy
+
 enum MQTT_msg_type {
         MQTT_RESERVED    = 0,
         MQTT_CONNECT     = 1,
@@ -17,20 +19,20 @@ enum MQTT_msg_type {
 };
 
 type MQTT_will_obj = record {
-	topic_len : uint16;
-	will_topic: bytestring &length = topic_len;
-	msg_len   : uint16; 
-	will_msg  : bytestring &length = msg_len;
+	will_topiclen : uint16;
+	will_topic: bytestring &length = will_topiclen;
+	will_msglen   : uint16; 
+	will_msg  : bytestring &length = will_msglen;
 };
 
 type MQTT_username_obj = record {
-	usrname_len   : uint16; 
-	will_username : bytestring &length = usrname_len;
+	uname_len   : uint16; 
+	uname : bytestring &length = uname_len;
 };
 
 type MQTT_password_obj = record {
-	password_len  : uint16; 
-	will_password : bytestring &length = password_len;
+	pass_len  : uint16; 
+	pass : bytestring &length = pass_len;
 };
 
 type MQTT_connect = record {
@@ -42,22 +44,22 @@ type MQTT_connect = record {
 	clientID_len     : uint16;
 	client_id        : bytestring &length = clientID_len;
 	will_fields      : case will of {
-			1 -> will_objs: MQTT_will_obj;
-			default -> none: empty;
+ 			1 -> will_objs: MQTT_will_obj;
+			default -> no_will_fileds: empty;
 	};
 	username_fields  : case username of {
 			1 -> uname_objs: MQTT_username_obj;
-			default -> none1: empty;
+			default -> no_uname_fields: empty;
 	};
 	password_fields  : case password of {
 			1 -> pass_objs: MQTT_password_obj;
-			default -> none2: empty;
+			default -> no_pass_fields: empty;
 	};
 } &let {
-	username      : uint8 = (connect_flags & 0x80);
-	password      : uint8 = (connect_flags & 0x40);
+	username      : uint8 = (connect_flags & 0x80) != 0;
+	password      : uint8 = (connect_flags & 0x40) != 0;
 	clean_session : uint8 = (connect_flags & 0x02) != 0;
-	will          : uint8 = (connect_flags & 0x04);
+	will          : uint8 = (connect_flags & 0x04) != 0;
 	will_retain   : uint8 = ((connect_flags & 0x20) != 0) &if(will);
 	will_QoS      : uint8 = ((connect_flags & 0x18) >> 3) &if(will);
 };
@@ -97,7 +99,7 @@ type MQTT_suback = record {
 
 type MQTT_unsubscribe_topic = record {
 	topic_len       : uint16;
-	subscribe_topic : bytestring &length = topic_len;
+	unsubscribe_topic : bytestring &length = topic_len;
 };
 type MQTT_unsubscribe = record {
 	msg_id : uint16;

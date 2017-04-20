@@ -109,9 +109,7 @@ event mqtt_puback(c: connection, msg_type: count, msg_id: count)
   	Log::write(Mqtt::LOG, info);
 	}
 
-# Change to include subscribe_topic after testing header parsing on real traffic
-#event mqtt_sub(c: connection, msg_type: count, msg_id: count, subscribe_topic: string, requested_QoS: count);
-event mqtt_sub(c: connection, msg_type: count, msg_id: count, requested_QoS: count)
+event mqtt_sub(c: connection, msg_type: count, msg_id: count, subscribe_topic: string, requested_QoS: count)
 	{
 	local info: Info;
 	info$ts  = network_time();
@@ -119,7 +117,7 @@ event mqtt_sub(c: connection, msg_type: count, msg_id: count, requested_QoS: cou
 	info$id  = c$id;
  	info$msg_type = msg_types[msg_type];
  	info$msg_id = msg_id;
-# 	info$topic = subscribe_topic;
+ 	info$topic = subscribe_topic;
  	info$QoS = requested_QoS;
 
   	Log::write(Mqtt::LOG, info);
@@ -138,9 +136,7 @@ event mqtt_suback(c: connection, msg_type: count, msg_id: count, granted_QoS: co
   	Log::write(Mqtt::LOG, info);
 	}
 
-# Change to include unsubscribe_topic after testing header parsing on real traffic
-#event mqtt_unsub(c: connection, msg_type: count, msg_id: count, unsubscribe_topic: string);
-event mqtt_unsub(c: connection, msg_type: count, msg_id: count)
+event mqtt_unsub(c: connection, msg_type: count, msg_id: count, unsubscribe_topic: string)
 	{
 	local info: Info;
 	info$ts  = network_time();
@@ -148,7 +144,7 @@ event mqtt_unsub(c: connection, msg_type: count, msg_id: count)
 	info$id  = c$id;
  	info$msg_type = msg_types[msg_type];
  	info$msg_id = msg_id;
-# 	info$topic = unsubscribe_topic;
+  	info$topic = unsubscribe_topic;
 
   	Log::write(Mqtt::LOG, info);
 	}

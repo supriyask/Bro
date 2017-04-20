@@ -3,52 +3,44 @@
 refine flow MQTT_Flow += {
 	function proc_mqtt_message(msg: MQTT_PDU): bool
 		%{
-		printf("Message Type: %d,  dup: %d,  Qos: %d,  retain: %d\n", ${msg.msg_type}, ${msg.dup}, ${msg.QoS}, ${msg.retain});
 
      		if (${msg.msg_type} == MQTT_CONNECT) {
-			printf("MQTT_CONNECT packet\n");
 			vector<MQTT_connect*>* options = ${msg.conn_packet};
 			vector<MQTT_connect*>::const_iterator ptr;
-			uint16 packet_len = 0;
 			StringVal* protocol_name = 0;
-  			string pname, cid;
+  			string willtopic, willmsg, willuname, willpass;
 			int protocol_version = 0;
 			int connect_flags = 0;
 			uint16 keep_alive = 0;
-			uint16 clientid_len = 0;
-			uint16 willtopic_len = 0;
 			int clean_session = 0;
 			StringVal* client_id = 0;
 
 			for ( ptr = options->begin(); ptr != options->end(); ++ptr ) {
-				packet_len = (*ptr)->len();
 				protocol_name = new StringVal((*ptr)->protocol_name().length(),
 					  (const char*) (*ptr)->protocol_name().begin()); 
-  				pname = std_str((*ptr)->protocol_name());
 				protocol_version = (int)(*ptr)->protocol_version();
 				connect_flags = (int)(*ptr)->connect_flags();
 				keep_alive = (*ptr)->keep_alive();
-				clientid_len = (*ptr)->clientID_len();
 			  	client_id = new StringVal((*ptr)->client_id().length(),
 					  (const char*) (*ptr)->client_id().begin()); 
-				cid = std_str((*ptr)->client_id());
   			  	clean_session = (int)(*ptr)->clean_session();
+				if ((*ptr)->will()){
+					willtopic = std_str((*ptr)->will_objs()->will_topic());
+					willmsg = std_str((*ptr)->will_objs()->will_msg());
+				}
+				if ((*ptr)->username()){
+					willuname = std_str((*ptr)->uname_objs()->uname());
+				}
+				if ((*ptr)->password()){
+					willpass = std_str((*ptr)->pass_objs()->pass());
+				}
 			}
-			cout << "packet_len: " << packet_len << " protocol_name: " << pname;
-			cout << " protocol_version: " << protocol_version << " keep_alive: " << keep_alive;
-			cout << " clientID_len: " << clientid_len << " client_id: " << cid << endl;
-		  	cout << "topic_len: " << clean_session << "-" << connect_flags << endl;
-//  			cout << "username: " << options->protocol_name<< endl; 
-//			cout << " will_retain: " << ${will_retain} << " will_QoS: " << ${will_QoS};
-//			cout << " clean_session: " << ${clean_session} << endl;
-			cout << endl;
 
 			BifEvent::generate_mqtt_conn(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), ${msg.msg_type},
 						protocol_name, protocol_version, client_id);
 			return true;
 		}
 		if (${msg.msg_type} == MQTT_CONNACK) {
-			printf("MQTT_CONNACK packet\n");
 			vector<MQTT_connack*>* connack = ${msg.connack_packet};
 			vector<MQTT_connack*>::const_iterator ptr;
 			int return_code = -1;
@@ -69,73 +61,55 @@ refine flow MQTT_Flow += {
 			return true;
 		}
 		if (${msg.msg_type} == MQTT_PUBLISH) {
-			printf("MQTT_PUBLISH packet\n");
 			vector<MQTT_publish*>* publish = ${msg.pub_packet};
 			vector<MQTT_publish*>::const_iterator ptr;
-        		uint16 topic_len = 0;
-			string ptopic, prest;
         		StringVal* topic = 0;
         		uint16 msg_id = 0;
         		StringVal* publish_rest = 0;
 			for ( ptr = publish->begin(); ptr != publish->end(); ++ptr ) {
-				topic_len = (*ptr)->topic_len();
 				topic = new StringVal((*ptr)->topic().length(),
 						  (const char*) (*ptr)->topic().begin());
-				ptopic = std_str((*ptr)->topic());
 				msg_id = (*ptr)->msg_id();
 				publish_rest = new StringVal((*ptr)->publish_rest().length(),
 						  (const char*) (*ptr)->publish_rest().begin());
-				prest = std_str((*ptr)->publish_rest());
 			}
-			cout << "topic_len: " << topic_len << " topic: " << ptopic << " msg_id: " << msg_id;
-			cout << " publish_rest: " << prest << endl;
-			cout << endl;
 			BifEvent::generate_mqtt_pub(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),${msg.msg_type},
 							msg_id, topic);
 			return true;
 		}
                 if (${msg.msg_type} == MQTT_PUBACK) {
-                        printf("MQTT_PUBACK packet\n");
                         vector<MQTT_puback*>* puback =  ${msg.puback_packet};
                         vector<MQTT_puback*>::const_iterator ptr;
                         uint16 msgid = 0;
                         for ( ptr = puback->begin(); ptr != puback->end(); ++ptr ) {
                                 msgid = (*ptr)->msg_id();
                         }
-                        cout << "Message Identifier: " << msgid << endl;
-                        cout << endl;
                         BifEvent::generate_mqtt_puback(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),${msg.msg_type},
                                                         msgid);
                         return true;
                 }
 		if (${msg.msg_type} == MQTT_SUBSCRIBE) {
-			printf("MQTT_SUBSCRIBE packet\n");
 			vector<MQTT_subscribe*>* subscribe  = ${msg.subscribe_packet};
 			vector<MQTT_subscribe*>::const_iterator ptr;
         		uint16 msgid = 0;
-        		uint16 topiclen = 0;
-			string stopic;
         		StringVal* subscribe_topic = 0;
         		int requested_QoS = 0;
 			for ( ptr = subscribe->begin(); ptr != subscribe->end(); ++ptr ) {
 				msgid = (*ptr)->msg_id();
-//				Change while testing header parsing on real traffic
-//				topiclen = (*ptr)->topic_len();
-//				subscribe_topic = new StringVal((*ptr)->subscribe_topic().length(),
-//						  (const char*) (*ptr)->subscribe_topic().begin());
-//				stopic = std_str((*ptr)->subscribe_topic());
-//				requested_QoS = (int)(*ptr)->requested_QoS();
+	                        vector<MQTT_subscribe_topic*>* sub_options = (*ptr)->topics();
+       		                vector<MQTT_subscribe_topic*>::const_iterator ptr1;
+				for ( ptr1 = sub_options->begin(); ptr1 != sub_options->end(); ++ptr1 ) {
+					subscribe_topic = new StringVal((*ptr1)->subscribe_topic().length(),
+						  (const char*) (*ptr1)->subscribe_topic().begin());
+					requested_QoS = (int)(*ptr1)->requested_QoS();
+				}	
+	
 			}
-			cout << "Message Identifier: " << msgid << " Topic Length: " << topiclen;
-//			cout << " Topic: " << stopic << " QoS: " << requested_QoS << endl;
-			cout << endl;
 			BifEvent::generate_mqtt_sub(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), ${msg.msg_type},
-							msgid, requested_QoS);
-							//msgid, subscribe_topic, requested_QoS);
+							msgid, subscribe_topic, requested_QoS);
 			return true;
 		}
 		if (${msg.msg_type} == MQTT_SUBACK) {
-			printf("MQTT_SUBACK packet\n");
 			vector<MQTT_suback*>* suback =  ${msg.suback_packet};
 			vector<MQTT_suback*>::const_iterator ptr;
         		uint16 msgid = 0;
@@ -144,62 +118,48 @@ refine flow MQTT_Flow += {
 				msgid = (*ptr)->msg_id();
 				granted_QoS = (int)(*ptr)->granted_QoS();
 			}
-			cout << "Message Identifier: " << msgid << " QoS: " << granted_QoS << endl;
-			cout << endl;
 			BifEvent::generate_mqtt_suback(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(),${msg.msg_type},
 							msgid, granted_QoS);
 			return true;
 	 	}
                 if (${msg.msg_type} == MQTT_UNSUBSCRIBE) {
-                        printf("MQTT_UNSUBSCRIBE packet\n");
                         vector<MQTT_unsubscribe*>* unsubscribe  = ${msg.unsubscribe_packet};
                         vector<MQTT_unsubscribe*>::const_iterator ptr;
                         uint16 msgid = 0;
-                        uint16 topiclen = 0;
-                        string unsubtopic;
                         StringVal* unsubscribe_topic = 0;
                         for ( ptr = unsubscribe->begin(); ptr != unsubscribe->end(); ++ptr ) {
                                 msgid = (*ptr)->msg_id();
-//				Change while testing header parsing on real traffic
-//                              topiclen = (*ptr)->topic_len();
-//                              unsubscribe_topic = new StringVal((*ptr)->unsubscribe_topic().length(),
-//                                                 (const char*) (*ptr)->unsubscribe_topic().begin());
-//                              unsubtopic = std_str((*ptr)->unsubscribe_topic());
+	                        vector<MQTT_unsubscribe_topic*>* unsub_options = (*ptr)->topics();
+       		                vector<MQTT_unsubscribe_topic*>::const_iterator ptr1;
+				for ( ptr1 = unsub_options->begin(); ptr1 != unsub_options->end(); ++ptr1 ) {
+                              		unsubscribe_topic = new StringVal((*ptr1)->unsubscribe_topic().length(),
+                                                 (const char*) (*ptr1)->unsubscribe_topic().begin());
+				}	
                         }
-                        cout << "Message Identifier: " << msgid << " Topic Length: " << topiclen;
-//                      cout << " Topic: " << unsubtopic << endl;
-                        cout << endl;
                         BifEvent::generate_mqtt_unsub(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), ${msg.msg_type},
-                                                        msgid);
-                                                        //msgid, unsubscribe_topic);
+                                                        msgid, unsubscribe_topic);
                         return true;
                 }
                 if (${msg.msg_type} == MQTT_UNSUBACK) {
-                        printf("MQTT_UNSUBACK packet\n");
                         vector<MQTT_unsuback*>* unsuback =  ${msg.unsuback_packet};
                         vector<MQTT_unsuback*>::const_iterator ptr;
                         uint16 msgid = 0;
                         for ( ptr = unsuback->begin(); ptr != unsuback->end(); ++ptr ) {
                                 msgid = (*ptr)->msg_id();
                         }
-                        cout << "Message Identifier: " << msgid << endl;
-                        cout << endl;
                         BifEvent::generate_mqtt_unsuback(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), ${msg.msg_type},
                                                         msgid);
                         return true;
                 }
 		if (${msg.msg_type} == MQTT_PINGREQ) {
-			printf("MQTT_PINGREQ packet\n\n");
 			BifEvent::generate_mqtt_pingreq(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), ${msg.msg_type});
 			return true;
 		}
 		if (${msg.msg_type} == MQTT_PINGRESP) {
-			printf("MQTT_PINGRESP packet\n\n");
 			BifEvent::generate_mqtt_pingres(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), ${msg.msg_type});
 			return true;
 		}
 		if (${msg.msg_type} == MQTT_DISCONNECT) {
-			printf("MQTT_DISCONNECT packet\n\n");
 			BifEvent::generate_mqtt_disconnect(connection()->bro_analyzer(), connection()->bro_analyzer()->Conn(), ${msg.msg_type});
 			return true;
 		}

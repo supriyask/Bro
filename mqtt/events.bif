@@ -19,15 +19,11 @@ event mqtt_pub%(c: connection, msg_type: count, msg_id: count, topic: string%);
 
 event mqtt_puback%(c: connection, msg_type: count, msg_id: count%);
 
-# Change to include subscribe_topic after testing header parsing on real traffic
-#event mqtt_sub%(c: connection, msg_type: count, msg_id: count, subscribe_topic: string, requested_QoS: count%);
-event mqtt_sub%(c: connection, msg_type: count, msg_id: count, requested_QoS: count%);
+event mqtt_sub%(c: connection, msg_type: count, msg_id: count, subscribe_topic: string, requested_QoS: count%);
 
 event mqtt_suback%(c: connection, msg_type: count, msg_id: count, granted_QoS: count%);
 
-# Change to include unsubscribe_topic after testing header parsing on real traffic
-#event mqtt_unsub%(c: connection, msg_type: count, msg_id: count, unsubscribe_topic: string%);
-event mqtt_unsub%(c: connection, msg_type: count, msg_id: count%);
+event mqtt_unsub%(c: connection, msg_type: count, msg_id: count, unsubscribe_topic: string%);
 
 event mqtt_unsuback%(c: connection, msg_type: count, msg_id: count%);
 
